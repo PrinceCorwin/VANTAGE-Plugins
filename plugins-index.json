@@ -1,13 +1,3 @@
 {
-  "plugins": [
-    {
-      "id": "test-hello",
-      "name": "Test Hello",
-      "version": "1.0.2",
-      "project": "Fluor T&M 25.005",
-      "description": "Test plugin for install pipeline",
-      "packageUrl": "https://github.com/PrinceCorwin/VANTAGE-Plugins/releases/download/v1.0.2-test/test-hello.1.0.2.zip",
-      "sha256": ""
-    }
-  ]
+  "plugins": []
 }

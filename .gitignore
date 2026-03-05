@@ -1,0 +1,23 @@
+# Build outputs
+bin/
+obj/
+*.dll
+*.pdb
+*.exe
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Package outputs (ZIPs are uploaded to GitHub Releases, not committed)
+*.zip
+
+# Temp files
+*.tmp
+*.log
