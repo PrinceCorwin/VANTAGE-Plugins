@@ -1,0 +1,14 @@
+  {
+    "plugins": [
+      {
+        "id": "fluor-pipe-support-fab",
+        "name": "Update Pipe Support Fab",
+        "version": "1.0.0",
+        "project": "Fluor T&M 25.005",
+        "description": "Updates pipe support fabrication fields for approved rows.",
+        "packageUrl":
+  "https://github.com/PrinceCorwin/VANTAGE-Plugins/releases/download/v1.0.0/fluor-pipe-support-fab.1.0.0.zip",
+        "sha256": ""
+      }
+    ]
+  }
