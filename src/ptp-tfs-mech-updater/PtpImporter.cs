@@ -42,8 +42,8 @@ namespace PtpTfsMechUpdater
         private static readonly string[] RequiredHeaders = { "CWP", "Quantity", "Status", "Shipped QTY" };
 
         // Constants for activity creation
-        private const string ROCStep = "7.SHP";
-        private const string DescriptionPrefix = "FABRICATION - 7.SHP ";
+        private const string ROCStep = "4.SHP";
+        private const string DescriptionPrefix = "FABRICATION - 4.SHP ";
         private const string Area = "TFS";
         private const string CompType = "P";
         private const string PhaseCategory = "PSF";
@@ -365,7 +365,7 @@ namespace PtpTfsMechUpdater
                 connection.Open();
 
                 var cmd = connection.CreateCommand();
-                cmd.CommandText = "SELECT UniqueID, Description, AssignedTo, Notes, Quantity, PercentEntry, ActStart, ActFin FROM Activities WHERE Description LIKE 'FABRICATION - 7.SHP %'";
+                cmd.CommandText = "SELECT UniqueID, Description, AssignedTo, Notes, Quantity, PercentEntry, ActStart, ActFin FROM Activities WHERE Description LIKE 'FABRICATION - 4.SHP %'";
 
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())

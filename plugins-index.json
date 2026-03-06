@@ -3,12 +3,12 @@
     {
       "id": "ptp-tfs-mech-updater",
       "name": "PTP TFS MECH Updater",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "pluginType": "action",
       "project": "25.005.",
       "description": "Imports PTP vendor shipping reports and creates/updates TFS Mechanical fabrication activities",
-      "packageUrl": "https://github.com/PrinceCorwin/VANTAGE-Plugins/releases/download/ptp-tfs-mech-updater-v1.0.0/ptp-tfs-mech-updater.1.0.0.zip",
-      "sha256": "662261E175AFEE843B2FC0F282D23B9A9AC88DC5F73E4F4A882AC76F5A464E93"
+      "packageUrl": "https://github.com/PrinceCorwin/VANTAGE-Plugins/releases/download/ptp-tfs-mech-updater-v1.0.1/ptp-tfs-mech-updater.1.0.1.zip",
+      "sha256": "7EC3CE5092DE4E38000E4410996E1C5861007B0EF769B0CA94BCDE10BC15D619"
     }
   ]
 }
