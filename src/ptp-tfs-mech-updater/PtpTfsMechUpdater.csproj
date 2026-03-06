@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>PtpTfsMechUpdater</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference the main VANTAGE app for plugin interfaces and data access -->
+    <Reference Include="VANTAGE">
+      <HintPath>..\..\..\VANTAGE\bin\Debug\net8.0-windows\VANTAGE.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.10" />
+  </ItemGroup>
+</Project>
