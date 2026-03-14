@@ -1,0 +1,12 @@
+{
+  "id": "const-tfs-mech-updater",
+  "name": "CONST TFS MECH Updater",
+  "version": "1.0.0",
+  "pluginType": "action",
+  "project": "25.005.",
+  "description": "Imports CONST vendor shipping reports and creates/updates TFS Mechanical fabrication activities",
+  "assemblyFile": "ConstTfsMechUpdater.dll",
+  "entryType": "ConstTfsMechUpdater.ConstTfsMechUpdaterPlugin",
+  "minAppVersion": "1.0.0",
+  "maxAppVersion": ""
+}
