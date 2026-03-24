@@ -14,7 +14,7 @@ namespace ConstTfsMechUpdater
         public void Initialize(IPluginHost host)
         {
             _host = host;
-            host.AddToolsMenuItem("CONST TFS MECH Updater", OnMenuClick, addSeparatorBefore: false);
+            host.AddToolsMenuItem("CONST TFS MECH Updater", OnMenuClick, addSeparatorBefore: true);
         }
 
         public void Shutdown()

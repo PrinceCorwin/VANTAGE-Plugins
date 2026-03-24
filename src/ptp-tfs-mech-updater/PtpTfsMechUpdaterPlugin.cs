@@ -14,7 +14,7 @@ namespace PtpTfsMechUpdater
         public void Initialize(IPluginHost host)
         {
             _host = host;
-            host.AddToolsMenuItem("PTP TFS MECH Updater", OnMenuClick, addSeparatorBefore: true);
+            host.AddToolsMenuItem("PTP TFS MECH Updater", OnMenuClick, addSeparatorBefore: false);
         }
 
         public void Shutdown()

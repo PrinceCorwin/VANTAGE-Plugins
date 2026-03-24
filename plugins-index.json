@@ -9,6 +9,16 @@
       "description": "Imports PTP vendor shipping reports and creates/updates TFS Mechanical fabrication activities",
       "packageUrl": "https://github.com/PrinceCorwin/VANTAGE-Plugins/releases/download/ptp-tfs-mech-updater-v1.0.1/ptp-tfs-mech-updater.1.0.1.zip",
       "sha256": "7EC3CE5092DE4E38000E4410996E1C5861007B0EF769B0CA94BCDE10BC15D619"
+    },
+    {
+      "id": "const-tfs-mech-updater",
+      "name": "CONST TFS MECH Updater",
+      "version": "1.0.0",
+      "pluginType": "action",
+      "project": "25.005.",
+      "description": "Imports CONST vendor spool reports and creates/updates TFS Mechanical fabrication activities",
+      "packageUrl": "https://github.com/PrinceCorwin/VANTAGE-Plugins/releases/download/const-tfs-mech-updater-v1.0.0/const-tfs-mech-updater.1.0.0.zip",
+      "sha256": "249CB1505FE629B80B385B98F79763360416C620F28748948E69085E842D2202"
     }
   ]
 }
