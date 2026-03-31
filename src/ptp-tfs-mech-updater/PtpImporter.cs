@@ -135,7 +135,7 @@ namespace PtpTfsMechUpdater
                         if (cwp.AllDeleted)
                             notes = "DELETED";
 
-                        if (existingRecords.TryGetValue(description, out var existing))
+                        if (existingRecords.TryGetValue(cwp.Cwp, out var existing))
                         {
                             // For updates, use existing dates as fallback instead of today
                             string actStart = "";
@@ -354,7 +354,7 @@ namespace PtpTfsMechUpdater
             return 0;
         }
 
-        // Find existing activities matching the description pattern
+        // Find existing activities by UDF2 (CWP) for PTP records (Area=TFS, ROCStep=4.SHP)
         private async Task<Dictionary<string, ExistingRecord>> FindExistingRecordsAsync()
         {
             var result = new Dictionary<string, ExistingRecord>(StringComparer.OrdinalIgnoreCase);
@@ -365,15 +365,17 @@ namespace PtpTfsMechUpdater
                 connection.Open();
 
                 var cmd = connection.CreateCommand();
-                cmd.CommandText = "SELECT UniqueID, Description, AssignedTo, Notes, Quantity, PercentEntry, ActStart, ActFin FROM Activities WHERE Description LIKE 'FABRICATION - 4.SHP %'";
+                cmd.CommandText = @"SELECT UniqueID, UDF2, AssignedTo, Notes, Quantity, PercentEntry, ActStart, ActFin
+                    FROM Activities
+                    WHERE Area = 'TFS' AND ROCStep = '4.SHP' AND UDF2 IS NOT NULL AND UDF2 != ''";
 
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    var desc = reader["Description"]?.ToString() ?? "";
-                    if (!string.IsNullOrEmpty(desc))
+                    var udf2 = reader["UDF2"]?.ToString() ?? "";
+                    if (!string.IsNullOrEmpty(udf2))
                     {
-                        result[desc] = new ExistingRecord
+                        result[udf2] = new ExistingRecord
                         {
                             UniqueID = reader["UniqueID"]?.ToString() ?? "",
                             AssignedTo = reader["AssignedTo"]?.ToString() ?? "",

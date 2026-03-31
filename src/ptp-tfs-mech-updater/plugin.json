@@ -1,7 +1,7 @@
 {
   "id": "ptp-tfs-mech-updater",
   "name": "PTP TFS MECH Updater",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "pluginType": "action",
   "project": "25.005.",
   "description": "Imports PTP vendor shipping reports and creates/updates TFS Mechanical fabrication activities",
