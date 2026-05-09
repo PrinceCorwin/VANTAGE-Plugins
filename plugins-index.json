@@ -13,12 +13,12 @@
     {
       "id": "const-tfs-mech-updater",
       "name": "CONST TFS MECH Updater",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "pluginType": "action",
       "project": "25.005.",
       "description": "Imports CONST vendor spool reports and creates/updates TFS Mechanical fabrication activities",
-      "packageUrl": "https://github.com/PrinceCorwin/VANTAGE-Plugins/releases/download/const-tfs-mech-updater-v1.0.0/const-tfs-mech-updater.1.0.0.zip",
-      "sha256": "249CB1505FE629B80B385B98F79763360416C620F28748948E69085E842D2202"
+      "packageUrl": "https://github.com/PrinceCorwin/VANTAGE-Plugins/releases/download/const-tfs-mech-updater-v1.0.1/const-tfs-mech-updater.1.0.1.zip",
+      "sha256": "2E7B68BEE4050EA7C535C71ADE50575904FD82C26AE7175A7B8CC40DC65A3F8F"
     }
   ]
 }

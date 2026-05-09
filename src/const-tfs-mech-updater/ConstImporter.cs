@@ -55,15 +55,23 @@ namespace ConstTfsMechUpdater
     {
         private readonly IPluginHost _host;
 
-        // Required columns in the CONST report
+        // Required columns in the CONST report (import cannot proceed without these)
         private static readonly string[] RequiredHeaders = { "Piece Mark", "Pipe Length", "WLD % All" };
+
+        // Optional columns — used if present; user is warned and can abort if any are missing
+        private static readonly string[] OptionalHeaders =
+        {
+            "Contract", "Spool", "Isometric", "Rev #", "Area", "Line", "System",
+            "Insulation", "Module", "Class", "Paint System", "Spool Size", "MTL",
+            "Weight", "RLS to Fab date", "Final Shipment", "Estimated Ship Date"
+        };
 
         // Hardcoded activity values
         private const string ROCStep = "4.SHP";
         private const string DescriptionPrefix = "Constellation Fabrication for PieceMark ";
         private const string DescriptionPattern = "Constellation Fabrication for PieceMark %";
         private const string CompType = "P";
-        private const string PhaseCategory = "PIP";
+        private const string PhaseCategory = "PIPF";
         private const string PhaseCode = "xx.xxx.";
         private const string ProjectID = "25.005.";
         private const string RespParty = "SUMMIT - PM";
@@ -114,9 +122,9 @@ namespace ConstTfsMechUpdater
             int created = 0;
             int updated = 0;
             int unchanged = 0;
-            int deleted = 0;
+            int markedForReview = 0;
+            var pieceMarksMarkedForReview = new List<string>();
             var dataWarnings = new List<string>();
-            var today = DateTime.Now;
 
             await Task.Run(() =>
             {
@@ -153,14 +161,22 @@ namespace ConstTfsMechUpdater
                             dataWarnings.Add($"{spool.PieceMark}: WLD at {wldPercent}%");
                         }
 
+                        // Sanity check: if both dates are present and RLS to Fab is later than
+                        // Final Shipment, the source data is contradictory (start after finish).
+                        // Reject both dates so they don't poison the schedule. User will see
+                        // metadata errors on the row and can raise the issue with Const.
+                        bool datesAreContradictory = spool.RlsToFabDate.HasValue
+                            && spool.FinalShipment.HasValue
+                            && spool.RlsToFabDate.Value > spool.FinalShipment.Value;
+
                         // ActStart from RLS to Fab date
                         string actStart = "";
-                        if (spool.RlsToFabDate.HasValue)
+                        if (spool.RlsToFabDate.HasValue && !datesAreContradictory)
                             actStart = spool.RlsToFabDate.Value.ToString("yyyy-MM-dd HH:mm:ss");
 
                         // ActFin from Final Shipment
                         string actFin = "";
-                        if (spool.FinalShipment.HasValue)
+                        if (spool.FinalShipment.HasValue && !datesAreContradictory)
                             actFin = spool.FinalShipment.Value.ToString("yyyy-MM-dd HH:mm:ss");
 
                         // PlanFin from Estimated Ship Date
@@ -207,24 +223,32 @@ namespace ConstTfsMechUpdater
                         }
                     }
 
-                    // Mark missing spools as deleted
+                    // Tag spools missing from the report so the user can review them.
+                    // Zero out progress + dates so the row can't poison SchedActNO rollups.
                     foreach (var existing in existingRecords.Values)
                     {
-                        if (!reportPieceMarks.Contains(existing.SecondDwgNO))
+                        if (reportPieceMarks.Contains(existing.SecondDwgNO))
+                            continue;
+
+                        // Skip if already in the inert "marked for review" state
+                        bool alreadyInert = existing.Notes.Contains("DELETED")
+                            && existing.PercentEntry == 0
+                            && string.IsNullOrEmpty(existing.ActStart)
+                            && string.IsNullOrEmpty(existing.ActFin);
+
+                        if (alreadyInert)
                         {
-                            // Skip if already marked deleted
-                            if (existing.Notes.Contains("DELETED"))
-                            {
-                                unchanged++;
-                                continue;
-                            }
-
-                            var newNotes = string.IsNullOrEmpty(existing.Notes) ? "DELETED" : $"{existing.Notes} DELETED";
-                            var actFin = string.IsNullOrEmpty(existing.ActFin) ? today.ToString("yyyy-MM-dd HH:mm:ss") : existing.ActFin;
-
-                            MarkAsDeleted(connection, transaction, existing, actFin, newNotes);
-                            deleted++;
+                            unchanged++;
+                            continue;
                         }
+
+                        var newNotes = existing.Notes.Contains("DELETED")
+                            ? existing.Notes
+                            : (string.IsNullOrEmpty(existing.Notes) ? "DELETED" : $"{existing.Notes} DELETED");
+
+                        MarkForReview(connection, transaction, existing, newNotes);
+                        markedForReview++;
+                        pieceMarksMarkedForReview.Add(existing.SecondDwgNO);
                     }
 
                     transaction.Commit();
@@ -237,7 +261,21 @@ namespace ConstTfsMechUpdater
             });
 
             // Show results
-            var message = $"CONST Import Complete\n\nCreated: {created}\nUpdated: {updated}\nUnchanged: {unchanged}\nDeleted: {deleted}";
+            var message = $"CONST Import Complete\n\n" +
+                          $"Created: {created}\n" +
+                          $"Updated: {updated}\n" +
+                          $"Unchanged: {unchanged}\n" +
+                          $"Marked for Review (missing from report): {markedForReview}";
+
+            if (markedForReview > 0)
+            {
+                message += "\n\nThe following Piece Marks no longer appear in the report.\n" +
+                           "They have been zeroed out (0%, dates cleared) and tagged \"DELETED\" in Notes.\n" +
+                           "Please review and delete these activities from VANTAGE so they don't clutter your project:\n\n" +
+                           string.Join("\n", pieceMarksMarkedForReview.Take(20));
+                if (pieceMarksMarkedForReview.Count > 20)
+                    message += $"\n... and {pieceMarksMarkedForReview.Count - 20} more (see log for full list).";
+            }
 
             if (dataWarnings.Count > 0)
             {
@@ -248,7 +286,11 @@ namespace ConstTfsMechUpdater
             }
 
             _host.ShowInfo(message, "CONST TFS MECH Updater");
-            _host.LogInfo($"CONST import: {created} created, {updated} updated, {unchanged} unchanged, {deleted} deleted, {dataWarnings.Count} warnings", "ConstImporter.RunAsync");
+            _host.LogInfo(
+                $"CONST import: {created} created, {updated} updated, {unchanged} unchanged, " +
+                $"{markedForReview} marked for review [{string.Join(", ", pieceMarksMarkedForReview)}], " +
+                $"{dataWarnings.Count} warnings",
+                "ConstImporter.RunAsync");
 
             // Refresh Progress view to show new/updated records
             await _host.RefreshProgressViewAsync();
@@ -258,6 +300,16 @@ namespace ConstTfsMechUpdater
         private static string NormalizeWhitespace(string value)
         {
             return Regex.Replace(value, @"\s+", " ").Trim();
+        }
+
+        // Strip a trailing "PP" (case insensitive) from the Module value so it isn't
+        // carried into UDF2 / WorkPackage. Re-trims the end in case the report had a space
+        // between the prefix and "PP".
+        private static string StripModulePpSuffix(string module)
+        {
+            if (module.Length >= 2 && module.EndsWith("PP", StringComparison.OrdinalIgnoreCase))
+                return module.Substring(0, module.Length - 2).TrimEnd();
+            return module;
         }
 
         // Try to parse a date from a cell (handles DateTime and string formats)
@@ -298,16 +350,36 @@ namespace ConstTfsMechUpdater
                         headers[value] = col;
                 }
 
-                foreach (var required in RequiredHeaders)
+                // Surface every missing expected column at once so the user can fix the report
+                // in one pass instead of discovering issues one by one.
+                var missingRequired = RequiredHeaders.Where(h => !headers.ContainsKey(h)).ToList();
+                var missingOptional = OptionalHeaders.Where(h => !headers.ContainsKey(h)).ToList();
+
+                if (missingRequired.Count > 0)
                 {
-                    if (!headers.ContainsKey(required))
+                    var msg = "Cannot import. The following REQUIRED column(s) are missing from the report:\n\n" +
+                              string.Join("\n", missingRequired.Select(h => $"  • {h}"));
+
+                    if (missingOptional.Count > 0)
                     {
-                        _host.ShowError(
-                            $"File is not formatted properly. Column headers must be on the first row.\n\n" +
-                            $"Missing required column: \"{required}\"",
-                            "Invalid File Format");
-                        return null;
+                        msg += "\n\nThe following optional column(s) are also missing:\n\n" +
+                               string.Join("\n", missingOptional.Select(h => $"  • {h}"));
                     }
+
+                    msg += "\n\nPlease check the report format and try again.";
+                    _host.ShowError(msg, "Invalid File Format");
+                    return null;
+                }
+
+                if (missingOptional.Count > 0)
+                {
+                    var msg = "The following expected column(s) were not found in the report:\n\n" +
+                              string.Join("\n", missingOptional.Select(h => $"  • {h}")) +
+                              "\n\nThese values will be left empty for new records.\n\n" +
+                              "Continue with the import?";
+
+                    if (!_host.ShowConfirmation(msg, "Missing Columns"))
+                        return null;
                 }
 
                 // Get column indices (required)
@@ -355,7 +427,7 @@ namespace ConstTfsMechUpdater
                         Line = lineCol > 0 ? worksheet.Cell(row, lineCol).GetString().Trim() : "",
                         System = systemCol > 0 ? worksheet.Cell(row, systemCol).GetString().Trim() : "",
                         Insulation = insulationCol > 0 ? worksheet.Cell(row, insulationCol).GetString().Trim() : "",
-                        Module = moduleCol > 0 ? worksheet.Cell(row, moduleCol).GetString().Trim() : "",
+                        Module = moduleCol > 0 ? StripModulePpSuffix(worksheet.Cell(row, moduleCol).GetString().Trim()) : "",
                         Class = classCol > 0 ? worksheet.Cell(row, classCol).GetString().Trim() : "",
                         PaintSystem = paintSystemCol > 0 ? worksheet.Cell(row, paintSystemCol).GetString().Trim() : "",
                         SpoolSize = spoolSizeCol > 0 ? worksheet.Cell(row, spoolSizeCol).GetString().Trim() : "",
@@ -461,25 +533,27 @@ namespace ConstTfsMechUpdater
             cmd.ExecuteNonQuery();
         }
 
-        // Mark an existing activity as deleted (missing from report)
-        private void MarkAsDeleted(SqliteConnection connection, SqliteTransaction transaction,
-            ExistingRecord existing, string actFin, string notes)
+        // Tag an existing activity for user review (its Piece Mark is missing from the report).
+        // Zero out progress + dates so the row can't poison schedule rollups; user is responsible
+        // for actually deleting these records via VANTAGE's normal delete flow.
+        private void MarkForReview(SqliteConnection connection, SqliteTransaction transaction,
+            ExistingRecord existing, string notes)
         {
             var cmd = connection.CreateCommand();
             cmd.Transaction = transaction;
 
             cmd.CommandText = @"
                 UPDATE Activities SET
-                    PercentEntry = 100,
+                    PercentEntry = 0,
+                    ActStart = '',
+                    ActFin = '',
                     Notes = @Notes,
-                    ActFin = @ActFin,
                     LocalDirty = 1,
                     UpdatedBy = @UpdatedBy,
                     UpdatedUtcDate = @UpdatedUtcDate
                 WHERE UniqueID = @UniqueID";
 
             cmd.Parameters.AddWithValue("@Notes", notes);
-            cmd.Parameters.AddWithValue("@ActFin", actFin);
             cmd.Parameters.AddWithValue("@UpdatedBy", _host.CurrentUsername);
             cmd.Parameters.AddWithValue("@UpdatedUtcDate", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
             cmd.Parameters.AddWithValue("@UniqueID", existing.UniqueID);
